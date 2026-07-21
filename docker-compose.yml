@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  web-scraper-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-scraper-agent
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
