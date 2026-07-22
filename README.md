@@ -13,7 +13,7 @@ Dokumentasi ini menjelaskan spesifikasi API Contract untuk **Web Scraper Agent**
 
 ### Aturan CORS & Keamanan
 Sesuai panduan integrasi, agen ini menerapkan Cross-Origin Resource Sharing (CORS) dengan whitelist origin khusus untuk berkomunikasi dengan orkestrator sentral:
-* **Allowed Origin**: `https://jokitugas.bananaunion.web.id`
+* **Allowed Origin**: `*`
 * **Allowed Methods**: `POST`, `GET`, `OPTIONS`
 * **Allowed Headers**: `*`
 
@@ -53,9 +53,9 @@ Orkestrator akan mengirimkan request JSON dengan struktur berikut:
   "task_id": "req-12345-abc",
   "agent_type": "web_scraper",
   "payload": {
-    "url": "https://id.wikipedia.org/wiki/Kecerdasan_buatan",
+    "url": "",
     "keyword": "AI",
-    "raw_text": ""
+    "raw_text": "https://id.wikipedia.org/wiki/Kecerdasan_buatan"
   },
   "metadata": {
     "sender": "orchestrator",
@@ -64,18 +64,18 @@ Orkestrator akan mengirimkan request JSON dengan struktur berikut:
 }
 ```
 
+> **Catatan Orkestrasi Baru**: Field `metadata` bersifat opsional dan diabaikan oleh agen. Agen akan secara otomatis mendeteksi target URL yang dikirimkan langsung melalui field `payload.raw_text`.
+
 ##### Penjelasan Parameter Request:
 | Nama Field | Tipe Data | Deskripsi |
 | :--- | :--- | :--- |
 | `task_id` | String | ID unik tugas dari pengguna. Wajib dikembalikan di dalam response secara persis. |
 | `agent_type` | String | Harus bernilai `"web_scraper"`. |
 | `payload` | Object | Menyimpan data parameter input tugas. |
-| `payload.url` | String | **(Wajib)** URL website target yang akan di-scrape. |
+| `payload.raw_text`| String | **(Prioritas Utama)** URL website target yang akan di-scrape. |
+| `payload.url` | String | *(Alternatif/Opsional)* URL website target jika `raw_text` tidak diisi. |
 | `payload.keyword` | String | *(Opsional)* Kata kunci pencarian jika dibutuhkan oleh agen. |
-| `payload.raw_text`| String | *(Opsional)* Teks limpahan hasil pemrosesan agen sebelumnya (bila ada). |
-| `metadata` | Object | Informasi metadata pengirim. |
-| `metadata.sender` | String | Identitas pengirim request (misal: `"orchestrator"`). |
-| `metadata.timestamp`| Integer | Unix timestamp pengiriman request. |
+| `metadata` | Object | *(Opsional)* Informasi tambahan pengirim (dapat diabaikan). |
 
 ---
 

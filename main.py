@@ -16,27 +16,29 @@ app = FastAPI(title="Web Scraper Agent - Joki Tugas System")
 # Whitelist CORS origin as per PDF guide
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://jokitugas.bananaunion.web.id"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
 )
 
+import re
+
 # API Contract Models
 class Payload(BaseModel):
-    url: str
+    url: Optional[str] = ""
     keyword: Optional[str] = ""
     raw_text: Optional[str] = ""
 
 class Metadata(BaseModel):
-    sender: str
-    timestamp: int
+    sender: Optional[str] = ""
+    timestamp: Optional[int] = 0
 
 class ScraperRequest(BaseModel):
     task_id: str
     agent_type: str
     payload: Payload
-    metadata: Metadata
+    metadata: Optional[Metadata] = None
 
 class SuccessData(BaseModel):
     result: str
@@ -54,6 +56,20 @@ class ErrorResponse(BaseModel):
     data: Optional[Any] = None
     message: str
 
+def extract_url(text: str) -> str:
+    if not text:
+        return ""
+    text = text.strip()
+    # If the text itself looks like a URL, return it
+    if text.startswith(("http://", "https://")):
+        return text
+    # Otherwise, try to find a URL pattern inside the text
+    url_pattern = re.compile(r'https?://[^\s]+')
+    match = url_pattern.search(text)
+    if match:
+        return match.group(0)
+    return text
+
 @app.post("/process", response_model=SuccessResponse)
 async def process_task(request: ScraperRequest):
     # Log incoming request
@@ -70,7 +86,10 @@ async def process_task(request: ScraperRequest):
             }
         )
 
-    target_url = request.payload.url.strip()
+    # Prioritize extracting URL from raw_text as requested
+    raw_text_url = extract_url(request.payload.raw_text)
+    target_url = raw_text_url if raw_text_url else request.payload.url.strip()
+
     if not target_url:
         raise HTTPException(
             status_code=400,
@@ -78,7 +97,7 @@ async def process_task(request: ScraperRequest):
                 "status": "error",
                 "task_id": request.task_id,
                 "data": None,
-                "message": "URL payload cannot be empty."
+                "message": "Target URL could not be found in payload.raw_text or payload.url."
             }
         )
 
